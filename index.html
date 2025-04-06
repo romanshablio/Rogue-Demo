@@ -2,153 +2,38 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>Rogue Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
   <style>
     /* Минимальные стили для поля. */
-    .field {
-      position: relative;
-      width: 640px; /* При изменении ШхВ, учитывать размеры в script.js в строках MAP_WIDTH+MAP_HEIGHT*/
-      height: 384px;
-      background-color: #333;
-      margin: 0 auto;
-      outline: 2px solid #000;
-    }
-    .tile {
-      position: absolute;
-      box-sizing: border-box;
-      width: 16px;
-      height: 16px;
-      font-size: 10px;
-      text-align: center;
-      line-height: 16px;
-      color: #fff;
-    }
-    /* Стили для вариантов тайлов (можно усложнить) */
-    .wall {
-        background-image: url('img/wall.png');
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
-    .floor {
-      background-color: #222;
-    }
-    .potion {
-      background-image: url('img/potion.png');
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
-
-    }
-    .sword {
-        background-image: url('img/sword.png');
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
-    .enemy {
-        background-image: url('img/enemy.png');
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
-    .hero {
-        background-image: url('img/hero.png');
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
-    /* Пример отображения шкалы здоровья */
-    /* .health-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      height: 3px;
-      background-color: red;
-    } */
-    /* Стили для панели здоровья под полем */
-    .hero-stats {
-        width: 640px;
-        margin: 20px auto;
-        padding: 10px;
-        background-color: #333;
-        border: 2px solid #000;
-    }
-
-    .health-bar-container {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .health-bar-label {
-        color: white;
-        min-width: 120px;
-    }
-
-    .health-bar-outer {
-        flex-grow: 1;
-        height: 20px;
-        background-color: #555;
-        border: 1px solid #000;
-    }
-
-    .health-bar-inner {
-        height: 100%;
-        background-color: #ff3333;
-        transition: width 0.3s ease;
-    }
-
-    .health-value {
-        color: white;
-        min-width: 80px;
-        text-align: right;
-    }
-
-    /* Стили для панели здоровья врага */
-    .nearest-enemy-stats {
-        width: 640px;
-        margin: 10px auto;
-        padding: 10px;
-        background-color: #333;
-        border: 2px solid #000;
-    }
-
-    .nearest-enemy-stats .health-bar-inner {
-        background-color: #B22222;  /* Красный цвет для врага */
-    }
-
-    .distance-value {
-        color: #aaa;
-        margin-left: 10px;
-        font-size: 0.9em;
-    }
+    
+   
   </style>
 </head>
 <body>
+  <div class="mobile-controls">
+    <div class="joystick-container">
+      <div class="joystick"></div>
+    </div>
+    <div class="attack-button">Атака</div>
+  </div>
 
   <h1 style="text-align: center;">Rogue Demo</h1>
-  <p style="text-align: center;">Чтобы управлять персонажем, используйте клавиши: W, A, S, D, чтобы бить врагов используйте пробел</p>
+  <p style="text-align: center;">Чтобы управлять персонажем, используйте клавиши: W, A, S, D. Чтобы атаковать врагов или взаимодействовать с принцессой, используйте пробел. Победите всех врагов, найдите принцессу и отведите ее к двери!</p>
+  <button class="fog-toggle">Туман войны: Вкл</button>
+  <div class="hero-health-corner">
+    <div class="health-bar-container">
+      <div class="health-bar-outer">
+        <div class="health-bar-inner"></div>
+      </div>
+      <div class="health-value">100/100</div>
+    </div>
+  </div>
   <div class="field"></div>
-  <div class="hero-stats">
-    <div class="health-bar-container">
-        <div class="health-bar-label">Здоровье героя:</div>
-        <div class="health-bar-outer">
-            <div class="health-bar-inner"></div>
-        </div>
-        <div class="health-value">100/100</div>
-    </div>
-  </div>
-  <div class="nearest-enemy-stats">
-    <div class="health-bar-container">
-        <div class="health-bar-label">Ближайший враг:</div>
-        <div class="health-bar-outer">
-            <div class="health-bar-inner"></div>
-        </div>
-        <div class="health-value">30/30</div>
-        <div class="distance-value">(расстояние: 0)</div>
-    </div>
-  </div>
 
   <!-- Добавляем аудио элементы -->
   <audio id="potion-sound" src="sounds/potion.mp3" preload="auto"></audio>

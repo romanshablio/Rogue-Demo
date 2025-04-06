@@ -1,0 +1,332 @@
+html {
+    background-color: #000;
+}   
+
+h1 {
+    color: #fff;
+}
+
+h2 {
+    color: #fff;
+}
+
+h3 {
+    color: #fff;
+}
+
+p {
+    color: #fff;
+}
+
+
+.field {
+    position: relative;
+    width: 100%;
+    max-width: 1280px;
+    height: calc(100vh - 200px);
+    min-height: 400px;
+    background-color: #111;
+    margin: 0 auto;
+    outline: 2px solid #000;
+    overflow: hidden;
+  }
+
+  .tile {
+    position: absolute;
+    box-sizing: border-box;
+    width: 64px;
+    height: 64px;
+    font-size: 12px;
+    text-align: center;
+    line-height: 64px;
+    color: #fff;
+    transition: all 0.1s ease;
+    background-color: transparent;
+  }
+  .fog {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    transition: opacity 0.3s;
+  }
+  .partially-visible {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+  /* Стили для вариантов тайлов (можно усложнить) */
+  .wall {
+    background-image: url('../img/wall.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: transparent;
+  }
+  .floor {
+    background-color: transparent;
+  }
+  .potion {
+    background-image: url('../img/potion.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: transparent;
+  }
+  .sword {
+    background-image: url('../img/sword.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: transparent;
+  }
+  .enemy {
+    background-image: url('../img/enemy.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: transparent;
+  }
+  .hero {
+    background-image: url('../img/hero.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: transparent;
+  }
+  .princess {
+    background-image: url('../img/princess.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: transparent;
+  }
+  .door {
+    background-image: url('../img/door.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: transparent;
+  }
+  /* Пример отображения шкалы здоровья */
+  .health-bar {
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 3px;
+    background-color: #ff3333;
+    border: 1px solid #000;
+  }
+  /* Стили для панели здоровья под полем */
+  .hero-stats {
+      width: 100%;
+      max-width: 640px;
+      margin: 20px auto;
+      padding: 10px;
+      background-color: #333;
+      border: 2px solid #000;
+  }
+
+  .health-bar-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+  }
+
+  .health-bar-label {
+      color: white;
+      min-width: 120px;
+  }
+
+  .health-bar-outer {
+      flex-grow: 1;
+      height: 20px;
+      background-color: #555;
+      border: 1px solid #000;
+  }
+
+  .health-bar-inner {
+      height: 100%;
+      background-color: #ff3333;
+      transition: width 0.3s ease;
+  }
+
+  .health-value {
+      color: white;
+      min-width: 80px;
+      text-align: right;
+  }
+
+  /* Стили для панели здоровья врага */
+  .nearest-enemy-stats {
+      width: 100%;
+      max-width: 640px;
+      margin: 10px auto;
+      padding: 10px;
+      background-color: #333;
+      border: 2px solid #000;
+  }
+
+  .nearest-enemy-stats .health-bar-inner {
+      background-color: #B22222;  /* Красный цвет для врага */
+  }
+
+  .distance-value {
+      color: #aaa;
+      margin-left: 10px;
+      font-size: 0.9em;
+  }
+
+  /* Стили для кнопки тумана войны */
+  .fog-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 10px 20px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border: 2px solid #fff;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 100;
+      transition: all 0.3s ease;
+  }
+
+  .fog-toggle:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .fog-toggle.active {
+      background-color: rgba(0, 255, 0, 0.3);
+      border-color: #0f0;
+  }
+
+  .enemy .health-bar {
+    width: 30px;
+    background-color: #B22222;
+  }
+
+  /* Удаляем старые стили панелей здоровья */
+  .hero-stats,
+  .nearest-enemy-stats {
+      display: none;
+  }
+
+  .hero-health-corner {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 5px;
+    border: 2px solid #333;
+}
+
+.hero-health-corner .health-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hero-health-corner .health-bar-outer {
+    width: 150px;
+    height: 20px;
+    background-color: #333;
+    border: 1px solid #555;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.hero-health-corner .health-bar-inner {
+    height: 100%;
+    background-color: #ff3333;
+    transition: width 0.3s ease;
+}
+
+.hero-health-corner .health-value {
+    color: white;
+    font-size: 14px;
+    min-width: 70px;
+}
+
+/* Обновляем стили для полос здоровья врагов */
+.enemy .health-bar {
+    width: 30px;
+    background-color: #B22222;
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 3px;
+    border: 1px solid #000;
+}
+
+/* Удаляем старые стили панелей здоровья */
+.hero-stats,
+.nearest-enemy-stats {
+    display: none;
+}
+
+/* Мобильные элементы управления */
+.mobile-controls {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-controls {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 20px;
+    }
+
+    .joystick-container {
+        width: 100px;
+        height: 100px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 50%;
+        position: relative;
+        pointer-events: auto;
+    }
+
+    .joystick {
+        width: 50px;
+        height: 50px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
+        position: absolute;
+        top: 25px;
+        left: 25px;
+        pointer-events: none;
+    }
+
+    .attack-button {
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 0, 0, 0.5);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+        pointer-events: auto;
+    }
+
+    /* Адаптация игрового поля для мобильных устройств */
+    .field {
+        height: calc(100vh - 100px);
+    }
+
+    h1, p {
+        display: none;
+    }
+}
+
+
