@@ -51,17 +51,6 @@
     // Флаг для тумана войны
     var fogOfWarEnabled = true;
   
-    // Переменные для мобильного управления
-    var joystickActive = false;
-    var joystickStartX = 0;
-    var joystickStartY = 0;
-    var joystickCurrentX = 0;
-    var joystickCurrentY = 0;
-    var joystickRadius = 50;
-    var joystick = $('.joystick');
-    var joystickContainer = $('.joystick-container');
-    var attackButton = $('.attack-button');
-  
     // Обработчик клика по кнопке тумана войны
     $fogToggle.on('click', function() {
         fogOfWarEnabled = !fogOfWarEnabled;
@@ -370,84 +359,28 @@
 
     // Полная отрисовка игрового поля
     function drawField() {
-        // Очищаем контейнер
+        // Очищаем поле
         $field.empty();
         
-        // Обновляем размеры поля под новый размер тайлов
-        $field.css({
-            width: VIEWPORT_WIDTH * TILE_SIZE + 'px',
-            height: VIEWPORT_HEIGHT * TILE_SIZE + 'px'
-        });
-
-        // Обновляем полосу здоровья героя в углу
-        updateHeroHealthCorner();
-
         // Определяем границы видимой области
-        var viewportLeft = hero.x - Math.floor(VIEWPORT_WIDTH/2);
-        var viewportTop = hero.y - Math.floor(VIEWPORT_HEIGHT/2);
-
-        for (var y = viewportTop; y < viewportTop + VIEWPORT_HEIGHT; y++) {
-            for (var x = viewportLeft; x < viewportLeft + VIEWPORT_WIDTH; x++) {
-                // Проверяем, что координаты в пределах карты
-                if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) {
-                    // Проверяем видимость клетки
-                    var visibility = isVisible(x, y);
-                    if (visibility === 0) {
-                        var screenPos = worldToScreen(x, y);
-                        var $tile = $('<div class="tile"></div>');
-                        $tile.css({
-                            left: screenPos.x + 'px',
-                            top: screenPos.y + 'px'
-                        });
-                        $tile.addClass('floor');
-                        var $fog = $('<div class="fog"></div>');
-                        $tile.append($fog);
-                        $field.append($tile);
-                        continue;
-                    }
-
-                    // Проверяем, не находится ли здесь герой
-                    var isHero = (x === hero.x && y === hero.y);
-                    var enemyHere = findEnemyAt(x, y);
-                    var isPrincess = (x === princess.x && y === princess.y);
-
-                    var screenPos = worldToScreen(x, y);
-                    var $tile = $('<div class="tile"></div>');
-                    $tile.css({
-                        left: screenPos.x + 'px',
-                        top: screenPos.y + 'px'
-                    });
-
-                    if (isHero) {
-                        $tile.addClass('hero');
-                    } else if (enemyHere) {
-                        $tile.addClass('enemy');
-                        var enemyHpPercent = Math.round((enemyHere.hp / enemyHere.maxHp) * 100);
-                        if (enemyHpPercent < 0) enemyHpPercent = 0;
-                        var $ehb = $('<div class="health-bar"></div>').css('width', (30 * enemyHpPercent / 100) + 'px');
-                        $tile.append($ehb);
-                    } else if (isPrincess) {
-                        $tile.addClass('princess');
-                    } else {
-                        switch(map[y][x]) {
-                            case WALL:   $tile.addClass('wall');   break;
-                            case FLOOR:  $tile.addClass('floor');  break;
-                            case SWORD:  $tile.addClass('sword');  break;
-                            case POTION: $tile.addClass('potion'); break;
-                            case DOOR:   $tile.addClass('door');   break;
-                            default:     $tile.addClass('floor');  break;
-                        }
-                    }
-
-                    if (visibility === 1) {
-                        var $fog = $('<div class="fog partially-visible"></div>');
-                        $tile.append($fog);
-                    }
-
-                    $field.append($tile);
-                }
+        var viewportLeft = Math.max(0, hero.x - Math.floor(VIEWPORT_WIDTH / 2));
+        var viewportTop = Math.max(0, hero.y - Math.floor(VIEWPORT_HEIGHT / 2));
+        var viewportRight = Math.min(MAP_WIDTH, viewportLeft + VIEWPORT_WIDTH);
+        var viewportBottom = Math.min(MAP_HEIGHT, viewportTop + VIEWPORT_HEIGHT);
+        
+        // Создаем фрагмент документа для оптимизации
+        var fragment = document.createDocumentFragment();
+        
+        // Отрисовываем только видимую область
+        for (var y = viewportTop; y < viewportBottom; y++) {
+            for (var x = viewportLeft; x < viewportRight; x++) {
+                var $tile = createTile(x, y);
+                fragment.appendChild($tile[0]);
             }
         }
+        
+        // Добавляем все тайлы за один раз
+        $field.append(fragment);
     }
   
     // Функция обновления полосы здоровья героя в углу
@@ -472,29 +405,25 @@
   
     // По нажатию WASD двигаем героя, если возможно
     function moveHero(dx, dy) {
+      if (gameOver) return;
+      
       var newX = hero.x + dx;
       var newY = hero.y + dy;
+      
       if (canMove(newX, newY)) {
         hero.x = newX;
         hero.y = newY;
-  
-        // Если там был меч — увеличить атаку, убрать меч
-        if (map[newY][newX] === SWORD) {
-          alert('Вы нашли меч! Ваша атака увеличена на 10.');
-          hero.attack += 10; 
-          map[newY][newX] = FLOOR; 
-        }
-        // Если там было зелье — восстановить часть HP, убрать зелье
-        if (map[newY][newX] === POTION) {
-          hero.hp = Math.min(hero.maxHp, hero.hp + 20);
-          map[newY][newX] = FLOOR;
-          playPotionSound();
-        }
-
-        // Обновляем положение принцессы
-        updatePrincess();
         
-        // Проверяем условие победы
+        // Используем requestAnimationFrame для оптимизации отрисовки
+        requestAnimationFrame(function() {
+            drawField();
+            updateHeroHealthCorner();
+        });
+        
+        // Проверяем предметы на новой клетке
+        checkItems();
+        
+        // Проверяем победу
         checkVictory();
       }
     }
@@ -701,22 +630,6 @@
       placePrincess();
       drawField();
       updateHeroHealthCorner();
-      initMobileControls(); // Добавляем инициализацию мобильного управления
-      
-      // Обработка клавиатуры только для десктопа
-      if (window.innerWidth > 768) {
-          $(document).on('keydown', function(e) {
-              if (gameOver) return;
-              
-              switch(e.key) {
-                  case 'w': case 'W': moveHero(0, -1); break;
-                  case 's': case 'S': moveHero(0, 1); break;
-                  case 'a': case 'A': moveHero(-1, 0); break;
-                  case 'd': case 'D': moveHero(1, 0); break;
-                  case ' ': heroAttack(); break;
-              }
-          });
-      }
       
       alert('Игра началась! Чтобы пройти уровень, победите всех врагов и отведите принцессу к двери! Удачи!');
     }
@@ -793,75 +706,87 @@
     // Добавляем обработчик изменения размера окна
     $(window).on('resize', updateViewportSize);
   
-    // Инициализация мобильного управления
-    function initMobileControls() {
-        if (window.innerWidth <= 768) {
-            // Обработка джойстика
-            joystickContainer.on('touchstart', function(e) {
-                joystickActive = true;
-                var touch = e.originalEvent.touches[0];
-                var rect = joystickContainer[0].getBoundingClientRect();
-                joystickStartX = rect.left + rect.width / 2;
-                joystickStartY = rect.top + rect.height / 2;
-                updateJoystick(touch.clientX, touch.clientY);
-            });
-
-            $(document).on('touchmove', function(e) {
-                if (joystickActive) {
-                    e.preventDefault();
-                    var touch = e.originalEvent.touches[0];
-                    updateJoystick(touch.clientX, touch.clientY);
-                }
-            });
-
-            $(document).on('touchend', function() {
-                joystickActive = false;
-                resetJoystick();
-            });
-
-            // Обработка кнопки атаки
-            attackButton.on('touchstart', function(e) {
-                e.preventDefault();
-                heroAttack();
-            });
+    // Функция проверки предметов на клетке
+    function checkItems() {
+        // Если там был меч — увеличить атаку, убрать меч
+        if (map[hero.y][hero.x] === SWORD) {
+            alert('Вы нашли меч! Ваша атака увеличена на 10.');
+            hero.attack += 10;
+            map[hero.y][hero.x] = FLOOR;
         }
+        // Если там было зелье — восстановить часть HP, убрать зелье
+        if (map[hero.y][hero.x] === POTION) {
+            hero.hp = Math.min(hero.maxHp, hero.hp + 20);
+            map[hero.y][hero.x] = FLOOR;
+            playPotionSound();
+        }
+        
+        // Обновляем положение принцессы
+        updatePrincess();
     }
 
-    function updateJoystick(x, y) {
-        var dx = x - joystickStartX;
-        var dy = y - joystickStartY;
-        var distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > joystickRadius) {
-            dx = dx * joystickRadius / distance;
-            dy = dy * joystickRadius / distance;
+    // Функция создания тайла
+    function createTile(x, y) {
+        // Проверяем видимость клетки
+        var visibility = isVisible(x, y);
+        if (visibility === 0) {
+            var screenPos = worldToScreen(x, y);
+            var $tile = $('<div class="tile"></div>');
+            $tile.css({
+                left: screenPos.x + 'px',
+                top: screenPos.y + 'px'
+            });
+            $tile.addClass('floor');
+            var $fog = $('<div class="fog"></div>');
+            $tile.append($fog);
+            return $tile;
         }
-        
-        joystick.css({
-            transform: `translate(${dx}px, ${dy}px)`
-        });
-        
-        // Определяем направление движения
-        var moveX = 0;
-        var moveY = 0;
-        
-        if (Math.abs(dx) > 20) {
-            moveX = dx > 0 ? 1 : -1;
-        }
-        if (Math.abs(dy) > 20) {
-            moveY = dy > 0 ? 1 : -1;
-        }
-        
-        // Двигаем героя
-        if (moveX !== 0 || moveY !== 0) {
-            moveHero(moveX, moveY);
-        }
-    }
 
-    function resetJoystick() {
-        joystick.css({
-            transform: 'translate(0, 0)'
+        // Проверяем, не находится ли здесь герой
+        var isHero = (x === hero.x && y === hero.y);
+        var enemyHere = findEnemyAt(x, y);
+        var isPrincess = (x === princess.x && y === princess.y);
+
+        var screenPos = worldToScreen(x, y);
+        var $tile = $('<div class="tile"></div>');
+        $tile.css({
+            left: screenPos.x + 'px',
+            top: screenPos.y + 'px'
         });
+
+        if (isHero) {
+            $tile.addClass('hero');
+        } else if (enemyHere) {
+            $tile.addClass('enemy');
+            var enemyHpPercent = Math.round((enemyHere.hp / enemyHere.maxHp) * 100);
+            if (enemyHpPercent < 0) enemyHpPercent = 0;
+            var $ehb = $('<div class="health-bar"></div>').css('width', (30 * enemyHpPercent / 100) + 'px');
+            $tile.append($ehb);
+        } else if (isPrincess) {
+            $tile.addClass('princess');
+        } else {
+            switch(map[y][x]) {
+                case WALL:   $tile.addClass('wall');   break;
+                case FLOOR:  $tile.addClass('floor');  break;
+                case SWORD:  $tile.addClass('sword');  break;
+                case POTION: $tile.addClass('potion'); break;
+                case DOOR:   $tile.addClass('door');   break;
+                default:     $tile.addClass('floor');  break;
+            }
+        }
+
+        if (visibility === 1) {
+            var $fog = $('<div class="fog partially-visible"></div>');
+            $tile.append($fog);
+        }
+
+        return $tile;
     }
   
-})();
+    // Делаем функции доступными глобально
+    window.moveHero = moveHero;
+    window.heroAttack = heroAttack;
+    window.enemyTurn = enemyTurn;
+    window.drawField = drawField;
+
+})(); // Конец самовызывающейся функции

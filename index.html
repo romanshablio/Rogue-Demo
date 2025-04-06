@@ -8,6 +8,7 @@
   <title>Rogue Demo</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <script src="js/jquery.min.js"></script>
   <style>
     /* Минимальные стили для поля. */
     
@@ -16,10 +17,13 @@
 </head>
 <body>
   <div class="mobile-controls">
-    <div class="joystick-container">
-      <div class="joystick"></div>
+    <div class="d-pad">
+        <div class="d-pad-button d-pad-up">↑</div>
+        <div class="d-pad-button d-pad-right">→</div>
+        <div class="d-pad-button d-pad-down">↓</div>
+        <div class="d-pad-button d-pad-left">←</div>
     </div>
-    <div class="attack-button">Атака</div>
+    <div class="attack-button">АТАКА</div>
   </div>
 
   <h1 style="text-align: center;">Rogue Demo</h1>
@@ -41,7 +45,7 @@
   <audio id="death-sound" src="sounds/death.mp3" preload="auto"></audio>
   <audio id="pain-sound" src="sounds/pain.mp3" preload="auto"></audio>
 
-  <script src="js/jquery.min.js"></script>
   <script src="js/script.js"></script>
+  <script src="js/mobile-controls.js"></script>
 </body>
 </html>
