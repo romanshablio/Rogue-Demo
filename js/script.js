@@ -25,10 +25,16 @@
   
     // Объект принцессы
     var princess = {
-      x: 0,
-      y: 0,
+      x: -1,
+      y: -1,
       isFollowing: false, // Следует ли за героем
       rescued: false      // Спасена ли принцесса
+    };
+
+    // Координаты двери текущего уровня
+    var door = {
+      x: -1,
+      y: -1
     };
   
     // Массив врагов (каждый враг: x, y, hp, attack и т.д.)
@@ -184,6 +190,33 @@
       }
       return floorCells;
     }
+
+    function isFloorTile(x, y) {
+      return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT && map[y][x] === FLOOR;
+    }
+
+    function isHeroAt(x, y) {
+      return hero.x === x && hero.y === y;
+    }
+
+    function isPrincessAt(x, y) {
+      return princess.x === x && princess.y === y;
+    }
+
+    function isDoorAt(x, y) {
+      return door.x === x && door.y === y;
+    }
+
+    function isCellOccupied(x, y, options) {
+      options = options || {};
+
+      if (!options.ignoreHero && isHeroAt(x, y)) return true;
+      if (!options.ignorePrincess && isPrincessAt(x, y)) return true;
+      if (!options.ignoreEnemies && findEnemyAt(x, y)) return true;
+      if (!options.ignoreDoor && isDoorAt(x, y)) return true;
+
+      return false;
+    }
   
     // Ставим на карту предмет: меч (SWORD) или зелье (POTION)
     // Выбираем случайную свободную «пустую» клетку (FLOOR).
@@ -228,6 +261,11 @@
         if (floorCells.length === 0) break;
         var idx = getRandomInt(0, floorCells.length - 1);
         var cell = floorCells[idx];
+        if (isCellOccupied(cell.x, cell.y, { ignoreDoor: true })) {
+          floorCells.splice(idx, 1);
+          i--;
+          continue;
+        }
         enemies.push({
           x: cell.x,
           y: cell.y,
@@ -256,8 +294,21 @@
       // Выбираем первую подходящую клетку для двери
       for (var i = 0; i < possibleDoorSpots.length; i++) {
         var spot = possibleDoorSpots[i];
-        if (canMove(spot.x, spot.y)) {
+        if (isFloorTile(spot.x, spot.y) && !isCellOccupied(spot.x, spot.y, { ignoreHero: true, ignoreDoor: true })) {
           map[spot.y][spot.x] = DOOR;
+          door.x = spot.x;
+          door.y = spot.y;
+          return;
+        }
+      }
+
+      var floorCells = getAllFloorCells();
+      for (var j = 0; j < floorCells.length; j++) {
+        var fallbackSpot = floorCells[j];
+        if (!isCellOccupied(fallbackSpot.x, fallbackSpot.y, { ignoreHero: true, ignoreDoor: true })) {
+          map[fallbackSpot.y][fallbackSpot.x] = DOOR;
+          door.x = fallbackSpot.x;
+          door.y = fallbackSpot.y;
           return;
         }
       }
@@ -272,6 +323,9 @@
         var bestCell = null;
 
         floorCells.forEach(function(cell) {
+          if (isCellOccupied(cell.x, cell.y, { ignoreDoor: true })) {
+            return;
+          }
           var distance = getDistance(hero.x, hero.y, cell.x, cell.y);
           if (distance > maxDistance) {
             maxDistance = distance;
@@ -409,23 +463,43 @@
       
       var newX = hero.x + dx;
       var newY = hero.y + dy;
+      var movingIntoPrincess = isPrincessAt(newX, newY);
       
-      if (canMove(newX, newY)) {
+      if (canMove(newX, newY) && !findEnemyAt(newX, newY)) {
+        var previousHeroX = hero.x;
+        var previousHeroY = hero.y;
+
+        if (movingIntoPrincess && princess.isFollowing && !princess.rescued) {
+          princess.x = previousHeroX;
+          princess.y = previousHeroY;
+        } else if (movingIntoPrincess) {
+          return false;
+        }
+
         hero.x = newX;
         hero.y = newY;
+
+        // Проверяем предметы на новой клетке
+        checkItems();
+
+        // Обновляем положение принцессы только после успешного хода героя
+        if (!movingIntoPrincess) {
+          updatePrincess(previousHeroX, previousHeroY);
+        }
         
+        // Проверяем победу
+        checkVictory();
+
         // Используем requestAnimationFrame для оптимизации отрисовки
         requestAnimationFrame(function() {
             drawField();
             updateHeroHealthCorner();
         });
-        
-        // Проверяем предметы на новой клетке
-        checkItems();
-        
-        // Проверяем победу
-        checkVictory();
+
+        return true;
       }
+
+      return false;
     }
   
     // Атака героя (пробел). Нужно ударить всех врагов, находящихся на соседних клетках
@@ -465,8 +539,11 @@
             }
           }
         }
-        playAttackSound();
       });
+
+      playAttackSound();
+
+      return true;
     }
   
     // Поиск врага на клетке (x, y)
@@ -485,6 +562,10 @@
       if (gameOver) return; // Если игра окончена, враги не ходят
 
       enemies.forEach(function(enemy) {
+        if (gameOver) {
+          return;
+        }
+
         // Смотрим, рядом ли герой. Если да — атаковать
         if (isAdjacent(enemy, hero)) {
           hero.hp -= enemy.attack;
@@ -513,7 +594,13 @@
           var newX = enemy.x + dx;
           var newY = enemy.y + dy;
           // Проверим, можно ли врагу ходить в ту клетку
-          if (canMove(newX, newY) && !findEnemyAt(newX, newY)) {
+          if (
+            canMove(newX, newY) &&
+            !findEnemyAt(newX, newY) &&
+            !isHeroAt(newX, newY) &&
+            !isPrincessAt(newX, newY) &&
+            !isDoorAt(newX, newY)
+          ) {
             // (Дополнительно проверяем, чтобы не занимать клетку с другим врагом)
             enemy.x = newX;
             enemy.y = newY;
@@ -530,8 +617,8 @@
     // Проверка победы (герой с принцессой дошел до двери)
     function checkVictory() {
       if (princess.isFollowing) {
-        // Проверяем, стоит ли герой на клетке с дверью
-        if (map[hero.y][hero.x] === DOOR) {
+        // Победа засчитывается, когда герой дошел до двери и принцесса рядом с ним
+        if (isDoorAt(hero.x, hero.y) && isAdjacent(hero, princess)) {
           princess.rescued = true;
           alert('Поздравляем! Вы спасли принцессу и прошли уровень!');
           startGame(); // Начинаем новую игру
@@ -540,19 +627,16 @@
     }
   
     // Обновляем движение принцессы
-    function updatePrincess() {
+    function updatePrincess(targetX, targetY) {
       if (princess.isFollowing && !princess.rescued) {
-        // Принцесса следует за героем, оставаясь на одну клетку позади
-        var dx = hero.x - princess.x;
-        var dy = hero.y - princess.y;
-        
-        // Определяем направление движения
-        if (Math.abs(dx) > Math.abs(dy)) {
-          // Двигаемся по горизонтали
-          princess.x += (dx > 0) ? 1 : -1;
-        } else if (dy !== 0) {
-          // Двигаемся по вертикали
-          princess.y += (dy > 0) ? 1 : -1;
+        if (
+          isFloorTile(targetX, targetY) ||
+          isDoorAt(targetX, targetY)
+        ) {
+          if (!findEnemyAt(targetX, targetY) && !isHeroAt(targetX, targetY)) {
+            princess.x = targetX;
+            princess.y = targetY;
+          }
         }
       }
     }
@@ -579,24 +663,24 @@
   
       switch(e.keyCode) {
         case 65: // A
-          moveHero(-1, 0);
-          redrawNeeded = true;
+          e.preventDefault();
+          redrawNeeded = moveHero(-1, 0);
           break;
         case 68: // D
-          moveHero(1, 0);
-          redrawNeeded = true;
+          e.preventDefault();
+          redrawNeeded = moveHero(1, 0);
           break;
         case 87: // W
-          moveHero(0, -1);
-          redrawNeeded = true;
+          e.preventDefault();
+          redrawNeeded = moveHero(0, -1);
           break;
         case 83: // S
-          moveHero(0, 1);
-          redrawNeeded = true;
+          e.preventDefault();
+          redrawNeeded = moveHero(0, 1);
           break;
         case 32: // Пробел — атака
-          heroAttack();
-          redrawNeeded = true;
+          e.preventDefault();
+          redrawNeeded = heroAttack();
           break;
       }
   
@@ -616,8 +700,12 @@
       gameOver = false;
       hero.hp = hero.maxHp;
       hero.attack = 10;
+      door.x = -1;
+      door.y = -1;
       
       // Сбрасываем состояние принцессы
+      princess.x = -1;
+      princess.y = -1;
       princess.isFollowing = false;
       princess.rescued = false;
       
@@ -720,9 +808,6 @@
             map[hero.y][hero.x] = FLOOR;
             playPotionSound();
         }
-        
-        // Обновляем положение принцессы
-        updatePrincess();
     }
 
     // Функция создания тайла

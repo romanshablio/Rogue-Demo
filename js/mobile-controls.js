@@ -12,38 +12,43 @@ function initMobileControls() {
     // Обработка D-pad
     dPad.up.on('touchstart', function(e) {
         e.preventDefault();
-        window.moveHero(0, -1);
-        window.enemyTurn();
-        window.drawField();
+        if (window.moveHero(0, -1)) {
+            window.enemyTurn();
+            window.drawField();
+        }
     });
 
     dPad.right.on('touchstart', function(e) {
         e.preventDefault();
-        window.moveHero(1, 0);
-        window.enemyTurn();
-        window.drawField();
+        if (window.moveHero(1, 0)) {
+            window.enemyTurn();
+            window.drawField();
+        }
     });
 
     dPad.down.on('touchstart', function(e) {
         e.preventDefault();
-        window.moveHero(0, 1);
-        window.enemyTurn();
-        window.drawField();
+        if (window.moveHero(0, 1)) {
+            window.enemyTurn();
+            window.drawField();
+        }
     });
 
     dPad.left.on('touchstart', function(e) {
         e.preventDefault();
-        window.moveHero(-1, 0);
-        window.enemyTurn();
-        window.drawField();
+        if (window.moveHero(-1, 0)) {
+            window.enemyTurn();
+            window.drawField();
+        }
     });
 
     // Обработка кнопки атаки
     attackButton.on('touchstart', function(e) {
         e.preventDefault();
-        window.heroAttack();
-        window.enemyTurn();
-        window.drawField();
+        if (window.heroAttack()) {
+            window.enemyTurn();
+            window.drawField();
+        }
     });
 
     // Предотвращаем скролл на мобильных устройствах
