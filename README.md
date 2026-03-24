@@ -1,5 +1,5 @@
 # Rogue Demo
-
+![Изображение тайтла игры](/img/title.png)
 Браузерная roguelike-игра на JavaScript. Основной runtime проекта теперь работает на **Phaser 3**, а исходная DOM-версия сохранена как legacy/reference implementation.
 
 ## Что есть в игре
