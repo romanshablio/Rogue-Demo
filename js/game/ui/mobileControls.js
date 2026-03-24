@@ -1,21 +1,15 @@
-function performTurnAction(game, action) {
-  const wasHandled = action();
-
-  if (wasHandled) {
-    game.advanceTurn();
-  }
-}
+import { performPlayerAction, PLAYER_ACTIONS } from "../input/playerActions.js";
 
 export function attachMobileControls(game, { document }) {
   const buttonMap = [
-    [".d-pad-up", () => game.moveHero(0, -1)],
-    [".d-pad-right", () => game.moveHero(1, 0)],
-    [".d-pad-down", () => game.moveHero(0, 1)],
-    [".d-pad-left", () => game.moveHero(-1, 0)],
-    [".attack-button", () => game.heroAttack()],
+    [".d-pad-up", PLAYER_ACTIONS.MOVE_UP],
+    [".d-pad-right", PLAYER_ACTIONS.MOVE_RIGHT],
+    [".d-pad-down", PLAYER_ACTIONS.MOVE_DOWN],
+    [".d-pad-left", PLAYER_ACTIONS.MOVE_LEFT],
+    [".attack-button", PLAYER_ACTIONS.ATTACK],
   ];
 
-  for (const [selector, action] of buttonMap) {
+  for (const [selector, actionId] of buttonMap) {
     const element = document.querySelector(selector);
 
     if (!element) {
@@ -26,7 +20,7 @@ export function attachMobileControls(game, { document }) {
       "touchstart",
       (event) => {
         event.preventDefault();
-        performTurnAction(game, action);
+        performPlayerAction(game, actionId);
       },
       { passive: false }
     );

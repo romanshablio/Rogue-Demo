@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Rogue Demo Legacy DOM Runtime</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <script src="js/jquery.min.js"></script>
+  <style>
+    /* Legacy DOM runtime preserved as reference implementation. */
+  </style>
+</head>
+<body>
+  <div class="mobile-controls">
+    <div class="d-pad">
+        <div class="d-pad-button d-pad-up">↑</div>
+        <div class="d-pad-button d-pad-right">→</div>
+        <div class="d-pad-button d-pad-down">↓</div>
+        <div class="d-pad-button d-pad-left">←</div>
+    </div>
+    <div class="attack-button">АТАКА</div>
+  </div>
+
+  <h1 style="text-align: center;">Rogue Demo</h1>
+  <p style="text-align: center;">Чтобы управлять персонажем, используйте клавиши: W, A, S, D. Чтобы атаковать врагов или взаимодействовать с принцессой, используйте пробел. Победите всех врагов, найдите принцессу и отведите ее к двери!</p>
+  <button class="game-settings-button">Параметры</button>
+  <button class="restart-menu-button">Пауза</button>
+  <button class="menu-exit-button">В меню</button>
+  <button class="fog-toggle">Туман войны: Вкл</button>
+  <div class="hero-health-corner">
+    <div class="health-bar-container">
+      <div class="health-bar-outer">
+        <div class="health-bar-inner"></div>
+      </div>
+      <div class="health-value">100/100</div>
+    </div>
+    <div class="hero-stats-panel">
+      <div class="hero-stat">
+        <span class="hero-stat-label">HP</span>
+        <span class="hero-stat-value hero-stat-health">100/100</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-label">Атака</span>
+        <span class="hero-stat-value hero-stat-attack">10</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-label">Этаж</span>
+        <span class="hero-stat-value hero-stat-floor">1/3</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-label">Враги</span>
+        <span class="hero-stat-value hero-stat-enemies">0</span>
+      </div>
+    </div>
+    <div class="inventory-panel">
+      <div class="inventory-title">Инвентарь</div>
+      <div class="inventory-item">
+        <div class="inventory-item-meta">
+          <span class="inventory-item-name">Зелья</span>
+          <span class="inventory-item-count inventory-count-potion">0</span>
+        </div>
+        <button class="inventory-use-button" data-item-type="potion">Использовать</button>
+      </div>
+      <div class="inventory-item">
+        <div class="inventory-item-meta">
+          <span class="inventory-item-name">Мечи</span>
+          <span class="inventory-item-count inventory-count-sword">0</span>
+        </div>
+        <button class="inventory-use-button" data-item-type="sword">Использовать</button>
+      </div>
+    </div>
+    <div class="minimap-panel">
+      <div class="inventory-title">Миникарта</div>
+      <canvas class="minimap-canvas" width="160" height="96"></canvas>
+    </div>
+  </div>
+  <div class="field"></div>
+
+  <audio id="potion-sound" src="sounds/potion.mp3" preload="auto"></audio>
+  <audio id="attack-sound" src="sounds/attack.mp3" preload="auto"></audio>
+  <audio id="death-sound" src="sounds/death.mp3" preload="auto"></audio>
+  <audio id="pain-sound" src="sounds/pain.mp3" preload="auto"></audio>
+  <audio id="main-theme" src="sounds/main_theme.m4a" preload="auto" loop></audio>
+  <audio id="background-level-theme" src="sounds/background_level_theme.m4a" preload="auto" loop></audio>
+
+  <script type="module" src="js/script.js"></script>
+</body>
+</html>

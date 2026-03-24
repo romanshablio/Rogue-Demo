@@ -1,48 +1,30 @@
-import { ITEM_TYPES } from "../core/constants.js";
+import {
+  getKeyboardPlayerAction,
+  performPlayerAction,
+  PLAYER_ACTIONS,
+} from "./playerActions.js";
 
 export function attachKeyboardControls(game, { document }) {
   document.addEventListener("keydown", (event) => {
-    let handled = false;
+    const actionId = getKeyboardPlayerAction(event);
 
-    switch (event.keyCode) {
-      case 27:
-        event.preventDefault();
-        game.toggleRestartMenu();
-        return;
-      case 65:
-        event.preventDefault();
-        handled = game.moveHero(-1, 0);
-        break;
-      case 68:
-        event.preventDefault();
-        handled = game.moveHero(1, 0);
-        break;
-      case 87:
-        event.preventDefault();
-        handled = game.moveHero(0, -1);
-        break;
-      case 83:
-        event.preventDefault();
-        handled = game.moveHero(0, 1);
-        break;
-      case 32:
-        event.preventDefault();
-        handled = game.heroAttack();
-        break;
-      case 49:
-        event.preventDefault();
-        handled = game.useInventoryItem(ITEM_TYPES.POTION);
-        break;
-      case 50:
-        event.preventDefault();
-        handled = game.useInventoryItem(ITEM_TYPES.SWORD);
-        break;
-      default:
-        break;
+    if (!actionId) {
+      return;
     }
 
-    if (handled) {
-      game.advanceTurn();
+    if (
+      actionId === PLAYER_ACTIONS.TOGGLE_MENU ||
+      actionId === PLAYER_ACTIONS.ATTACK ||
+      actionId === PLAYER_ACTIONS.USE_POTION ||
+      actionId === PLAYER_ACTIONS.USE_SWORD ||
+      actionId === PLAYER_ACTIONS.MOVE_LEFT ||
+      actionId === PLAYER_ACTIONS.MOVE_RIGHT ||
+      actionId === PLAYER_ACTIONS.MOVE_UP ||
+      actionId === PLAYER_ACTIONS.MOVE_DOWN
+    ) {
+      event.preventDefault();
     }
+
+    performPlayerAction(game, actionId);
   });
 }

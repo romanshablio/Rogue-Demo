@@ -6,7 +6,6 @@ import { attachUiBindings } from "./game/ui/bindings.js";
 const game = createGame({
   document,
   window,
-  jquery: window.jQuery || window.$ || null,
 });
 
 attachKeyboardControls(game, { document });

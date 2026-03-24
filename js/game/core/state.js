@@ -1,14 +1,6 @@
 import { GAME_STATUS } from "./constants.js";
 
-export function createViewport(windowObject, tileSize) {
-  return {
-    tileSize,
-    width: Math.max(1, Math.floor(windowObject.innerWidth / tileSize) - 2),
-    height: Math.max(1, Math.floor(windowObject.innerHeight / tileSize) - 2),
-  };
-}
-
-export function createInitialState(config, windowObject) {
+export function createInitialState(config, viewport) {
   return {
     run: {
       status: GAME_STATUS.IDLE,
@@ -23,7 +15,7 @@ export function createInitialState(config, windowObject) {
       width: config.mapWidth,
       height: config.mapHeight,
       tiles: [],
-      viewport: createViewport(windowObject, config.tileSize),
+      viewport,
       metadata: {},
     },
     hero: {

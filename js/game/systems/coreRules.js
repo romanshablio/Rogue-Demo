@@ -56,6 +56,7 @@ function maybeRescuePrincess(game) {
 
   if (game.isDoorAt(hero.x, hero.y) && isAdjacent(hero, princess)) {
     princess.rescued = true;
+    game.emitEvent("princessRescued");
     game.advanceFloor();
   }
 }
@@ -71,6 +72,10 @@ function maybeRecruitPrincess(game) {
     if (cell.x === princess.x && cell.y === princess.y) {
       princess.isFollowing = true;
       game.showMessage(game.config.messages.princessFollow, { type: "info" });
+      game.emitEvent("princessRecruited", {
+        x: princess.x,
+        y: princess.y,
+      });
       return;
     }
   }
@@ -97,7 +102,12 @@ function applyEnemyIntent(game, enemy, intent) {
     game.animationManager.playEntity(enemy.id, "attack");
     game.animationManager.playEntity("hero", "damage");
     game.state.hero.hp -= intent.damage;
-    game.audio.playPain();
+    game.playSoundEffect("pain");
+    game.emitEvent("heroDamaged", {
+      damage: intent.damage,
+      hp: Math.max(0, game.state.hero.hp),
+      enemyId: enemy.id,
+    });
 
     if (game.state.hero.hp <= 0) {
       game.state.hero.hp = 0;
@@ -147,12 +157,17 @@ export function createCoreRulesSystem() {
 
         game.animationManager.playEntity(enemy.id, "damage");
         enemy.hp -= game.state.hero.attack;
+        game.emitEvent("enemyDamaged", {
+          enemyId: enemy.id,
+          damage: game.state.hero.attack,
+          hp: Math.max(0, enemy.hp),
+        });
         if (enemy.hp <= 0) {
           game.removeEnemy(enemy.id);
         }
       }
 
-      game.audio.playAttack();
+      game.playSoundEffect("attack");
     },
     beforeTurn(game) {
       for (const enemy of [...game.state.enemies]) {

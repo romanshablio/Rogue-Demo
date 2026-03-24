@@ -4,7 +4,12 @@ import {
   ITEM_TYPES,
   TILE_TYPES,
 } from "./constants.js";
-import { cloneState, createInitialState, createViewport } from "./state.js";
+import { NullAnimationManager } from "../animation/NullAnimationManager.js";
+import { NullAudioManager } from "../audio/NullAudioManager.js";
+import { NullHudAdapter } from "../ui/NullHudAdapter.js";
+import { createGameEventBus } from "./GameEventBus.js";
+import { createHeadlessRuntimeEnvironment } from "../runtime/RuntimeEnvironment.js";
+import { cloneState, createInitialState } from "./state.js";
 
 function getInventoryKey(itemType) {
   return itemType === ITEM_TYPES.SWORD ? "sword" : "potion";
@@ -14,9 +19,7 @@ export class GameCore {
   constructor({
     config,
     configBuilder,
-    windowObject,
-    documentObject,
-    renderer,
+    runtimeEnvironment,
     hud,
     audio,
     animationManager,
@@ -25,15 +28,14 @@ export class GameCore {
     enemyTypeRegistry,
     difficultyOptions,
     defaultDifficultyId,
+    eventBus,
   }) {
     this.config = config;
     this.configBuilder = configBuilder;
-    this.window = windowObject;
-    this.document = documentObject;
-    this.renderer = renderer;
-    this.hud = hud;
-    this.audio = audio;
-    this.animationManager = animationManager;
+    this.runtime = runtimeEnvironment || createHeadlessRuntimeEnvironment();
+    this.hud = hud || new NullHudAdapter();
+    this.audio = audio || new NullAudioManager();
+    this.animationManager = animationManager || new NullAnimationManager();
     this.saveManager = saveManager;
     this.levelRegistry = levelRegistry;
     this.enemyTypeRegistry = enemyTypeRegistry;
@@ -41,9 +43,13 @@ export class GameCore {
     this.defaultDifficultyId = defaultDifficultyId || config.difficultyId;
     this.currentDifficultyId = config.difficultyId || this.defaultDifficultyId;
     this.systems = [];
-    this.listeners = new Set();
+    this.stateListeners = new Set();
+    this.eventBus = eventBus || createGameEventBus();
     this.restartTimer = null;
-    this.state = createInitialState(config, windowObject);
+    this.state = createInitialState(
+      config,
+      this.runtime.getViewport(config.tileSize)
+    );
   }
 
   registerLevel(id, factory) {
@@ -67,20 +73,35 @@ export class GameCore {
   }
 
   getAudioSettings() {
-    return this.audio.getSettings();
-  }
-
-  subscribe(listener) {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
+    return this.audio.getSettings?.() || {
+      musicEnabled: true,
+      sfxEnabled: true,
     };
   }
 
+  subscribe(listener) {
+    this.stateListeners.add(listener);
+    return () => {
+      this.stateListeners.delete(listener);
+    };
+  }
+
+  subscribeToEvents(listener) {
+    return this.eventBus.subscribe(listener);
+  }
+
   notify() {
-    for (const listener of this.listeners) {
+    for (const listener of this.stateListeners) {
       listener(this.state);
     }
+  }
+
+  emitEvent(type, payload = {}) {
+    this.eventBus.emit({
+      type,
+      payload,
+      state: this.state,
+    });
   }
 
   start(options = {}) {
@@ -93,7 +114,7 @@ export class GameCore {
       this.defaultDifficultyId;
 
     if (this.restartTimer) {
-      this.window.clearTimeout(this.restartTimer);
+      this.runtime.clearTimeout(this.restartTimer);
       this.restartTimer = null;
     }
 
@@ -102,19 +123,28 @@ export class GameCore {
       this.config = this.configBuilder(difficultyId);
     }
 
-    this.renderer?.setConfig?.(this.config);
-    this.state = createInitialState(this.config, this.window);
+    this.state = createInitialState(
+      this.config,
+      this.runtime.getViewport(this.config.tileSize)
+    );
     this.state.run.status = GAME_STATUS.RUNNING;
     this.state.run.currentLevelId = levelId;
     this.state.run.currentDifficultyId = difficultyId;
     this.state.run.currentFloor = 1;
     this.state.run.maxFloorCount = this.config.floorCount || 1;
     this.state.ui.restartMenuOpen = false;
+    this.emitEvent("configChanged", {
+      config: this.config,
+    });
 
     this.loadFloor(1);
-    this.audio.stopMainMenuMusic();
-    this.audio.playBackgroundMusic();
+    this.stopMainMenuMusic();
+    this.playBackgroundMusic();
     this.runHook("onGameStart");
+    this.emitEvent("runStarted", {
+      levelId,
+      difficultyId,
+    });
     this.render();
     this.showMessage(this.config.messages.intro);
   }
@@ -148,7 +178,7 @@ export class GameCore {
     this.state.map.height = level.map.length;
     this.state.map.tiles = level.map;
     this.state.map.metadata = level.metadata || {};
-    this.state.map.viewport = createViewport(this.window, this.config.tileSize);
+    this.state.map.viewport = this.runtime.getViewport(this.config.tileSize);
     this.state.door = { ...level.doorSpawn };
     this.state.princess = { ...level.entities.princess };
     this.state.enemies = level.entities.enemies.map((enemy) => ({ ...enemy }));
@@ -168,6 +198,12 @@ export class GameCore {
         potion: 0,
       };
     }
+
+    this.emitEvent("floorLoaded", {
+      floorNumber,
+      levelId: this.state.run.currentLevelId || DEFAULT_LEVEL_ID,
+      usedProgressSnapshot: Boolean(progressSnapshot),
+    });
   }
 
   captureProgressSnapshot() {
@@ -191,6 +227,9 @@ export class GameCore {
     const snapshot = this.captureProgressSnapshot();
     this.loadFloor(nextFloor, snapshot);
     this.runHook("onGameStart");
+    this.emitEvent("floorAdvanced", {
+      floorNumber: nextFloor,
+    });
     this.render();
     this.showMessage(
       `${this.config.messages.nextFloor} Этаж ${nextFloor}/${this.state.run.maxFloorCount}.`,
@@ -200,22 +239,24 @@ export class GameCore {
 
   exitToMainMenu() {
     if (this.restartTimer) {
-      this.window.clearTimeout(this.restartTimer);
+      this.runtime.clearTimeout(this.restartTimer);
       this.restartTimer = null;
     }
 
     this.animationManager.clearAll();
-    this.state = createInitialState(this.config, this.window);
+    this.state = createInitialState(
+      this.config,
+      this.runtime.getViewport(this.config.tileSize)
+    );
     this.state.run.status = GAME_STATUS.IDLE;
     this.state.run.currentDifficultyId =
       this.currentDifficultyId || this.defaultDifficultyId;
-    this.audio.stopBackgroundMusic();
-    this.audio.playMainMenuMusic();
+    this.stopBackgroundMusic();
+    this.playMainMenuMusic();
 
-    if (this.hud && typeof this.hud.clearMessage === "function") {
-      this.hud.clearMessage();
-    }
+    this.clearMessage();
 
+    this.emitEvent("returnedToMainMenu");
     this.render();
   }
 
@@ -226,6 +267,7 @@ export class GameCore {
 
     this.state.run.status = GAME_STATUS.PAUSED;
     this.state.ui.restartMenuOpen = true;
+    this.emitEvent("restartMenuOpened");
     this.render();
   }
 
@@ -236,6 +278,7 @@ export class GameCore {
 
     this.state.run.status = GAME_STATUS.RUNNING;
     this.state.ui.restartMenuOpen = false;
+    this.emitEvent("restartMenuClosed");
     this.render();
   }
 
@@ -291,6 +334,14 @@ export class GameCore {
       previousHeroPosition,
       movedIntoPrincessCell,
     });
+    this.emitEvent("heroMoved", {
+      from: previousHeroPosition,
+      to: {
+        x: nextX,
+        y: nextY,
+      },
+      movedIntoPrincessCell,
+    });
     this.render();
 
     return true;
@@ -302,6 +353,13 @@ export class GameCore {
     }
 
     this.runHook("onHeroAttack");
+    this.emitEvent("heroAttacked", {
+      origin: {
+        x: this.state.hero.x,
+        y: this.state.hero.y,
+      },
+      attack: this.state.hero.attack,
+    });
     this.render();
     return true;
   }
@@ -331,11 +389,16 @@ export class GameCore {
 
     if (itemType === ITEM_TYPES.POTION) {
       this.state.hero.hp = Math.min(this.state.hero.maxHp, this.state.hero.hp + 20);
-      this.audio.playPotion();
+      this.playSoundEffect("potion");
       this.showMessage(this.config.messages.potionUse, { type: "success" });
       this.animationManager.playEntity("hero", "heal");
     }
 
+    this.emitEvent("inventoryItemUsed", {
+      itemType,
+      inventoryKey,
+      remainingCount: this.state.inventory[inventoryKey],
+    });
     this.render();
     return true;
   }
@@ -349,6 +412,13 @@ export class GameCore {
     } else {
       this.showMessage(this.config.messages.potionPickup, { type: "success" });
     }
+
+    this.emitEvent("itemPicked", {
+      itemId: item.id,
+      itemType: item.type,
+      inventoryKey,
+      inventoryCount: this.state.inventory[inventoryKey],
+    });
   }
 
   advanceTurn() {
@@ -359,6 +429,9 @@ export class GameCore {
     this.state.run.turn += 1;
     this.runHook("beforeTurn");
     this.runHook("afterTurn");
+    this.emitEvent("turnAdvanced", {
+      turn: this.state.run.turn,
+    });
     this.render();
   }
 
@@ -368,19 +441,23 @@ export class GameCore {
     }
 
     this.state.run.fogEnabled = !this.state.run.fogEnabled;
+    this.emitEvent("fogToggled", {
+      enabled: this.state.run.fogEnabled,
+    });
     this.render();
   }
 
   resizeViewport() {
-    this.state.map.viewport = createViewport(this.window, this.config.tileSize);
+    this.state.map.viewport = this.runtime.getViewport(this.config.tileSize);
+    this.emitEvent("viewportResized", {
+      viewport: { ...this.state.map.viewport },
+    });
     this.render();
   }
 
   render() {
-    this.renderer.render(this.state);
-    this.hud.render(this.state);
-    this.runHook("onRender");
     this.notify();
+    this.runHook("onRender");
   }
 
   snapshot() {
@@ -388,23 +465,65 @@ export class GameCore {
   }
 
   updateAudioSettings(nextSettings) {
-    this.audio.applySettings(nextSettings);
-    this.saveManager?.saveAudioSettings?.(this.audio.getSettings());
+    this.audio.applySettings?.(nextSettings);
+    this.saveManager?.saveAudioSettings?.(this.getAudioSettings());
 
     if (this.state.run.status === GAME_STATUS.IDLE) {
-      this.audio.playMainMenuMusic();
+      this.playMainMenuMusic();
     } else if (
       this.state.run.status === GAME_STATUS.RUNNING ||
       this.state.run.status === GAME_STATUS.PAUSED
     ) {
-      this.audio.playBackgroundMusic();
+      this.playBackgroundMusic();
     }
+
+    this.emitEvent("audioSettingsUpdated", {
+      settings: this.getAudioSettings(),
+    });
   }
 
   showMessage(message, options) {
     if (this.hud && typeof this.hud.showMessage === "function") {
       this.hud.showMessage(message, options);
     }
+
+    this.emitEvent("messageShown", {
+      message,
+      options: options || {},
+    });
+  }
+
+  clearMessage() {
+    this.hud?.clearMessage?.();
+  }
+
+  setUseItemHandler(handler) {
+    this.hud?.setUseItemHandler?.(handler);
+  }
+
+  playSoundEffect(cueId) {
+    this.audio.playCue?.(cueId);
+    this.emitEvent("soundEffectPlayed", {
+      cueId,
+    });
+  }
+
+  playBackgroundMusic() {
+    this.audio.playBackgroundMusic?.();
+    this.emitEvent("backgroundMusicRequested");
+  }
+
+  stopBackgroundMusic() {
+    this.audio.stopBackgroundMusic?.();
+  }
+
+  playMainMenuMusic() {
+    this.audio.playMainMenuMusic?.();
+    this.emitEvent("mainMenuMusicRequested");
+  }
+
+  stopMainMenuMusic() {
+    this.audio.stopMainMenuMusic?.();
   }
 
   handleHeroDeath() {
@@ -413,9 +532,10 @@ export class GameCore {
     }
 
     this.state.run.status = GAME_STATUS.GAME_OVER;
-    this.audio.playDeath();
+    this.playSoundEffect("death");
     this.render();
     this.showMessage(this.config.messages.death, { type: "error" });
+    this.emitEvent("runLost");
     this.scheduleRestart(1200);
   }
 
@@ -426,15 +546,16 @@ export class GameCore {
       type: "success",
       durationMs: 3000,
     });
+    this.emitEvent("runWon");
     this.scheduleRestart(1800);
   }
 
   scheduleRestart(delayMs) {
     if (this.restartTimer) {
-      this.window.clearTimeout(this.restartTimer);
+      this.runtime.clearTimeout(this.restartTimer);
     }
 
-    this.restartTimer = this.window.setTimeout(() => {
+    this.restartTimer = this.runtime.setTimeout(() => {
       this.restartTimer = null;
       this.restart();
     }, delayMs);
@@ -450,10 +571,16 @@ export class GameCore {
 
   removeEnemy(enemyId) {
     this.state.enemies = this.state.enemies.filter((enemy) => enemy.id !== enemyId);
+    this.emitEvent("enemyRemoved", {
+      enemyId,
+    });
   }
 
   removeItem(itemId) {
     this.state.items = this.state.items.filter((item) => item.id !== itemId);
+    this.emitEvent("itemRemoved", {
+      itemId,
+    });
   }
 
   getEnemyType(typeId) {

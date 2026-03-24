@@ -1,4 +1,6 @@
-import { GAME_STATUS, ITEM_TYPES } from "../core/constants.js";
+import { GAME_STATUS } from "../core/constants.js";
+import { performPlayerAction, PLAYER_ACTIONS } from "../input/playerActions.js";
+import { createMenuFlowController } from "./menuFlowController.js";
 import { InGameMenuScreen } from "./InGameMenuScreen.js";
 import { MainMenuScreen } from "./MainMenuScreen.js";
 
@@ -34,50 +36,48 @@ export function attachUiBindings(game, { document }) {
     game.getAudioSettings()
   );
   const restartMenu = new InGameMenuScreen(document, game.getAudioSettings());
+  const menuFlow = createMenuFlowController(game, {
+    showMainMenu: () => mainMenu.show(),
+    hideMainMenu: () => mainMenu.hide(),
+    showPauseMenu: () => restartMenu.show(),
+    hidePauseMenu: () => restartMenu.hide(),
+    showPauseSettings: () => restartMenu.showSettingsOverlay(),
+    setMainAudioSettings: (audioSettings) => mainMenu.setAudioSettings?.(audioSettings),
+    setPauseAudioSettings: (audioSettings) => restartMenu.setAudioSettings(audioSettings),
+  });
 
-  game.hud?.setUseItemHandler?.((itemType) => {
-    const normalizedType =
-      itemType === "sword" ? ITEM_TYPES.SWORD : ITEM_TYPES.POTION;
-    const used = game.useInventoryItem(normalizedType);
-    if (used) {
-      game.advanceTurn();
-    }
+  game.setUseItemHandler?.((itemType) => {
+    performPlayerAction(
+      game,
+      itemType === "sword"
+        ? PLAYER_ACTIONS.USE_SWORD
+        : PLAYER_ACTIONS.USE_POTION
+    );
   });
 
   restartMenu.setHandlers({
-    onResume: () => game.closeRestartMenu(),
-    onRestart: () => game.restartRunFromMenu(),
-    onExit: () => {
-      game.exitToMainMenu();
-      restartMenu.hide();
-      mainMenu.show();
-    },
-    onAudioSettingsChange: (audioSettings) => {
-      game.updateAudioSettings(audioSettings);
-      mainMenu.setAudioSettings?.(audioSettings);
-      restartMenu.setAudioSettings(audioSettings);
-    },
+    onResume: () => menuFlow.resumeRun(),
+    onRestart: () => menuFlow.restartRun(),
+    onExit: () => menuFlow.exitToMainMenu(),
+    onAudioSettingsChange: (audioSettings) => menuFlow.updateAudioSettings(audioSettings),
   });
 
   if (mainMenu.root) {
     mainMenu.root.addEventListener(
       "pointerdown",
       () => {
-        game.audio.playMainMenuMusic();
+        game.playMainMenuMusic();
       },
       { once: true }
     );
   }
 
   mainMenu.setStartHandler((difficultyId) => {
-    mainMenu.hide();
-    restartMenu.hide();
-    game.start({ difficultyId });
+    menuFlow.startRun(difficultyId);
   });
 
   mainMenu.setAudioSettingsChangeHandler((audioSettings) => {
-    game.updateAudioSettings(audioSettings);
-    restartMenu.setAudioSettings(audioSettings);
+    menuFlow.updateAudioSettings(audioSettings);
   });
 
   if (fogToggle) {
@@ -88,8 +88,7 @@ export function attachUiBindings(game, { document }) {
   }
 
   gameSettingsButton?.addEventListener("click", () => {
-    game.openRestartMenu();
-    restartMenu.showSettingsOverlay();
+    menuFlow.openPauseSettings();
   });
 
   restartMenuButton?.addEventListener("click", () => {
@@ -98,9 +97,7 @@ export function attachUiBindings(game, { document }) {
 
   if (menuExitButton) {
     menuExitButton.addEventListener("click", () => {
-      game.exitToMainMenu();
-      restartMenu.hide();
-      mainMenu.show();
+      menuFlow.exitToMainMenu();
     });
   }
 
@@ -118,12 +115,6 @@ export function attachUiBindings(game, { document }) {
       ],
       isInGame
     );
-
-    if (state.ui.restartMenuOpen || state.run.status === GAME_STATUS.PAUSED) {
-      restartMenu.show();
-    } else {
-      restartMenu.hide();
-    }
   });
 
   syncFogToggle(fogToggle, game.getState());
@@ -138,6 +129,5 @@ export function attachUiBindings(game, { document }) {
     ],
     false
   );
-  restartMenu.hide();
-  game.exitToMainMenu();
+  menuFlow.initialize();
 }

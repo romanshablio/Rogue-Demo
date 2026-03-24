@@ -1,6 +1,6 @@
 # Rogue Demo
 
-Браузерная roguelike-игра на JavaScript без сборщика. Проект переведен на native ES modules и разбит на игровые подсистемы: ядро, генерацию уровней, врагов, рендер, UI, аудио и служебные менеджеры.
+Браузерная roguelike-игра на JavaScript. Основной runtime проекта теперь работает на **Phaser 3**, а исходная DOM-версия сохранена как legacy/reference implementation.
 
 ## Что есть в игре
 
@@ -77,15 +77,17 @@
 - `js/game/level/` - генерация этажей и реестр уровней
 - `js/game/entities/` - типы врагов и реестр enemy types
 - `js/game/systems/` - игровые правила, бой, логика принцессы и ходов
-- `js/game/render/` - DOM-рендер, видимость, viewport
-- `js/game/ui/` - HUD, главное меню, пауза, параметры, mobile controls
+- `js/game/render/` - общие render helpers и legacy DOM renderer
+- `js/game/ui/` - общие UI flow/controllers и legacy DOM UI
 - `js/game/audio/` - музыка и звуковые эффекты
 - `js/game/animation/` - менеджер анимаций
 - `js/game/save/` - сохранение служебных данных
+- `js/phaser/` - основной Phaser runtime: сцены, UI, рендер, аудио и эффекты
 
 Точка входа:
 
-- `js/script.js`
+- основной runtime: `index.html` -> `js/phaser/script.js`
+- legacy DOM runtime: `legacy-dom.html` -> `js/script.js`
 
 Bootstrap игры:
 
@@ -96,6 +98,8 @@ Bootstrap игры:
 ```text
 Rogue-Demo/
 ├── index.html
+├── legacy-dom.html
+├── phaser.html
 ├── README.md
 ├── css/
 │   └── style.css
@@ -114,7 +118,6 @@ Rogue-Demo/
 │   └── wall.png
 ├── js/
 │   ├── jquery.min.js
-│   ├── mobile-controls.js
 │   ├── script.js
 │   └── game/
 │       ├── animation/
@@ -128,6 +131,9 @@ Rogue-Demo/
 │       ├── systems/
 │       ├── ui/
 │       └── utils/
+├── js/phaser/
+│   ├── audio/
+│   └── runtime/
 └── sounds/
     ├── attack.mp3
     ├── background_level_theme.m4a
@@ -143,7 +149,8 @@ Rogue-Demo/
 
 1. Откройте репозиторий локально.
 2. Убедитесь, что все папки `js`, `css`, `img`, `sounds` находятся рядом с `index.html`.
-3. Откройте `index.html` в современном браузере.
+3. Откройте `index.html` в современном браузере для основной Phaser-версии.
+4. Если нужно сравнить со старым runtime, откройте `legacy-dom.html`.
 
 ## Текущее состояние
 
@@ -154,6 +161,13 @@ Rogue-Demo/
 - расширение HUD
 - развитие системы анимаций
 - полноценное сохранение прогресса поверх существующего save manager
+
+## Планирование развития
+
+- [План выбора движка и переноса](docs/engine-migration-plan.md)
+- [Phaser Migration Roadmap](docs/phaser-migration-roadmap.md)
+- основной runtime: `index.html`
+- legacy reference runtime: `legacy-dom.html`
 
 ## Лицензия
 

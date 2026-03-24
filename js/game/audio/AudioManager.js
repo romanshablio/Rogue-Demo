@@ -17,6 +17,27 @@ export class AudioManager {
     }
   }
 
+  playCue(cueId) {
+    if (cueId === "potion") {
+      this.playPotion();
+      return;
+    }
+
+    if (cueId === "attack") {
+      this.playAttack();
+      return;
+    }
+
+    if (cueId === "death") {
+      this.playDeath();
+      return;
+    }
+
+    if (cueId === "pain") {
+      this.playPain();
+    }
+  }
+
   play(soundId) {
     if (!this.settings.sfxEnabled) {
       return;
