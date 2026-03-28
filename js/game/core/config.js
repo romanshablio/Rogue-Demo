@@ -4,7 +4,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   difficultyId: DEFAULT_DIFFICULTY_ID,
   mapWidth: 40,
   mapHeight: 24,
-  floorCount: 3,
+  floorCount: 4,
   tileSize: 64,
   fogEnabledByDefault: true,
   visionRadius: 8,
@@ -41,6 +41,8 @@ export const DEFAULT_CONFIG = Object.freeze({
     noItemInInventory: "В инвентаре нет этого предмета.",
     princessFollow: "Принцесса следует за вами! Отведите ее к двери.",
     nextFloor: "Вы спустились на следующий этаж.",
+    platformerFloor:
+      "Четвертый этаж стал платформером: A/D для движения, Shift для прыжка к верхней платформе.",
     victory: "Поздравляем! Вы спасли принцессу и прошли уровень!",
     death: "Вы погибли! Игра завершена.",
   },

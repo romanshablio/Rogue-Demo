@@ -21,6 +21,7 @@ export function createInitialState(config, viewport) {
     hero: {
       x: 0,
       y: 0,
+      facingX: 1,
       hp: config.hero.maxHp,
       maxHp: config.hero.maxHp,
       attack: config.hero.attack,

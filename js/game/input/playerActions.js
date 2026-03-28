@@ -6,6 +6,7 @@ export const PLAYER_ACTIONS = Object.freeze({
   MOVE_RIGHT: "move-right",
   MOVE_UP: "move-up",
   MOVE_DOWN: "move-down",
+  JUMP: "jump",
   ATTACK: "attack",
   USE_POTION: "use-potion",
   USE_SWORD: "use-sword",
@@ -23,6 +24,9 @@ export function getKeyboardPlayerAction(event) {
       return PLAYER_ACTIONS.MOVE_UP;
     case "KeyS":
       return PLAYER_ACTIONS.MOVE_DOWN;
+    case "ShiftLeft":
+    case "ShiftRight":
+      return PLAYER_ACTIONS.JUMP;
     case "Space":
       return PLAYER_ACTIONS.ATTACK;
     case "Digit1":
@@ -54,6 +58,8 @@ export function performPlayerAction(game, actionId) {
     handled = game.moveHero(0, -1);
   } else if (actionId === PLAYER_ACTIONS.MOVE_DOWN) {
     handled = game.moveHero(0, 1);
+  } else if (actionId === PLAYER_ACTIONS.JUMP) {
+    handled = game.jumpHero();
   } else if (actionId === PLAYER_ACTIONS.ATTACK) {
     handled = game.heroAttack();
   } else if (actionId === PLAYER_ACTIONS.USE_POTION) {

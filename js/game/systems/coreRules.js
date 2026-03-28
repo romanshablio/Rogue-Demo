@@ -142,6 +142,7 @@ export function createCoreRulesSystem() {
         payload.previousHeroPosition,
         payload.movedIntoPrincessCell
       );
+      maybeRecruitPrincess(game);
       maybeRescuePrincess(game);
     },
     onHeroAttack(game) {

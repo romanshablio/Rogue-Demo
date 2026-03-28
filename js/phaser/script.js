@@ -17,6 +17,13 @@ const phaserGame = new PhaserGlobal.Game({
     mode: PhaserGlobal.Scale.RESIZE,
     autoCenter: PhaserGlobal.Scale.CENTER_BOTH,
   },
+  physics: {
+    default: "arcade",
+    arcade: {
+      gravity: { y: 0 },
+      debug: false,
+    },
+  },
   scene: [PhaserGameScene],
 });
 

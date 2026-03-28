@@ -63,6 +63,7 @@ export class PhaserSpriteRenderer {
     this.scene = scene;
     this.animationManager = animationManager;
     this.root = scene.add.container(0, 0);
+    this.root.setDepth(10);
     this.tileSize = 24;
     this.offsetX = 16;
     this.offsetY = 96;
@@ -83,24 +84,32 @@ export class PhaserSpriteRenderer {
       return;
     }
 
-    const topOffset = Math.max(96, layoutMetrics.topInset || 96);
-    const footerOffset = Math.max(56, layoutMetrics.bottomInset || 56);
-    const availableWidth = Math.max(160, this.scene.scale.width - 32);
+    const bounds = getViewportBounds(state);
+    const visibleWidth = Math.max(1, bounds.right - bounds.left);
+    const visibleHeight = Math.max(1, bounds.bottom - bounds.top);
+    const horizontalPadding = 16;
+    const topOffset = Math.max(24, layoutMetrics.topInset || 24);
+    const footerOffset = Math.max(24, layoutMetrics.bottomInset || 24);
+    const availableWidth = Math.max(160, this.scene.scale.width - horizontalPadding * 2);
     const availableHeight = Math.max(
       160,
       this.scene.scale.height - topOffset - footerOffset
     );
     const fitTileWidth = Math.floor(
-      availableWidth / Math.max(1, state.map.viewport.width)
+      availableWidth / visibleWidth
     );
     const fitTileHeight = Math.floor(
-      availableHeight / Math.max(1, state.map.viewport.height)
+      availableHeight / visibleHeight
     );
-    this.tileSize = Math.max(12, Math.min(40, fitTileWidth, fitTileHeight));
+    this.tileSize = Math.max(8, Math.min(96, fitTileWidth, fitTileHeight));
 
-    const bounds = getViewportBounds(state);
-    const offsetX = 16;
-    const offsetY = topOffset;
+    const gridWidth = visibleWidth * this.tileSize;
+    const gridHeight = visibleHeight * this.tileSize;
+    const offsetX = Math.max(horizontalPadding, Math.floor((this.scene.scale.width - gridWidth) / 2));
+    const offsetY =
+      topOffset +
+      Math.max(0, Math.floor((availableHeight - gridHeight) / 2));
+
     this.bounds = bounds;
     this.offsetX = offsetX;
     this.offsetY = offsetY;
@@ -110,8 +119,8 @@ export class PhaserSpriteRenderer {
     const panel = this.scene.add.rectangle(
       offsetX - 4,
       offsetY - 4,
-      state.map.viewport.width * this.tileSize + 8,
-      state.map.viewport.height * this.tileSize + 8,
+      gridWidth + 8,
+      gridHeight + 8,
       COLOR.panel,
       1
     );

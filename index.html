@@ -5,11 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rogue Demo</title>
   <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IM+Fell+English+SC&display=swap"
+    rel="stylesheet"
+  >
   <style>
     html, body {
       margin: 0;
       width: 100%;
       height: 100%;
+      min-height: 100dvh;
       overflow: hidden;
       background: #0b1017;
       color: #f5f7fa;
@@ -17,8 +24,15 @@
     }
 
     #phaser-root {
+      position: fixed;
+      inset: 0;
       width: 100%;
       height: 100%;
+      min-height: 100dvh;
+    }
+
+    #phaser-root canvas {
+      display: block;
     }
   </style>
 </head>

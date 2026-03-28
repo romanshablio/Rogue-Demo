@@ -3,6 +3,7 @@ export class PhaserCombatEffects {
     this.scene = scene;
     this.spriteRenderer = spriteRenderer;
     this.layer = scene.add.container(0, 0);
+    this.layer.setDepth(40);
   }
 
   handleEvent(event) {

@@ -14,6 +14,22 @@ function createWallMap(width, height) {
   );
 }
 
+function createAirMap(width, height) {
+  return Array.from({ length: height }, () =>
+    Array.from({ length: width }, () => TILE_TYPES.FLOOR)
+  );
+}
+
+function fillRect(tiles, x, y, width, height, tileType) {
+  for (let row = y; row < y + height; row += 1) {
+    for (let col = x; col < x + width; col += 1) {
+      if (tiles[row] && tiles[row][col] !== undefined) {
+        tiles[row][col] = tileType;
+      }
+    }
+  }
+}
+
 function carveRoom(tiles, x, y, width, height) {
   for (let row = y; row < y + height; row += 1) {
     for (let col = x; col < x + width; col += 1) {
@@ -266,7 +282,108 @@ function placeEnemies(tiles, config, occupiedCells, enemyTypes, floorNumber) {
   return enemies;
 }
 
+function createPlatformerFloor(config, floorNumber) {
+  const tiles = createAirMap(config.mapWidth, config.mapHeight);
+
+  fillRect(tiles, 0, config.mapHeight - 2, config.mapWidth, 2, TILE_TYPES.WALL);
+  fillRect(tiles, 5, config.mapHeight - 6, 5, 1, TILE_TYPES.WALL);
+  fillRect(tiles, 12, config.mapHeight - 9, 4, 1, TILE_TYPES.WALL);
+  fillRect(tiles, 18, config.mapHeight - 12, 5, 1, TILE_TYPES.WALL);
+  fillRect(tiles, 25, config.mapHeight - 15, 4, 1, TILE_TYPES.WALL);
+  fillRect(tiles, 30, config.mapHeight - 18, 4, 1, TILE_TYPES.WALL);
+  fillRect(tiles, 34, config.mapHeight - 20, 5, 1, TILE_TYPES.WALL);
+  fillRect(tiles, 15, config.mapHeight - 5, 3, 1, TILE_TYPES.WALL);
+  fillRect(tiles, 23, config.mapHeight - 8, 3, 1, TILE_TYPES.WALL);
+  fillRect(tiles, 8, config.mapHeight - 13, 3, 1, TILE_TYPES.WALL);
+
+  const heroSpawn = {
+    x: 3,
+    y: config.mapHeight - 3,
+    facingX: 1,
+    hp: config.hero.maxHp,
+    maxHp: config.hero.maxHp,
+    attack: config.hero.attack,
+  };
+  const doorSpawn = { x: 37, y: config.mapHeight - 21 };
+  const princess = {
+    x: 35,
+    y: config.mapHeight - 21,
+    isFollowing: false,
+    rescued: false,
+  };
+  const items = [
+    {
+      id: "platformer-sword-1",
+      type: ITEM_TYPES.SWORD,
+      x: 14,
+      y: config.mapHeight - 10,
+    },
+    {
+      id: "platformer-potion-1",
+      type: ITEM_TYPES.POTION,
+      x: 20,
+      y: config.mapHeight - 13,
+    },
+    {
+      id: "platformer-potion-2",
+      type: ITEM_TYPES.POTION,
+      x: 31,
+      y: config.mapHeight - 19,
+    },
+  ];
+
+  return {
+    map: tiles,
+    heroSpawn,
+    doorSpawn,
+    entities: {
+      princess,
+      enemies: [],
+    },
+    items,
+    metadata: {
+      floorNumber,
+      movementMode: "platformer",
+      physicsMode: "arcade",
+      floatingGround2Cells: [
+        { x: 12, y: config.mapHeight - 9 },
+        { x: 13, y: config.mapHeight - 9 },
+        { x: 19, y: config.mapHeight - 12 },
+        { x: 20, y: config.mapHeight - 12 },
+        { x: 25, y: config.mapHeight - 15 },
+        { x: 26, y: config.mapHeight - 15 },
+        { x: 30, y: config.mapHeight - 18 },
+        { x: 31, y: config.mapHeight - 18 },
+      ],
+      regularTreeSpawns: [
+        { x: 7, y: config.mapHeight - 3 },
+        { x: 18, y: config.mapHeight - 3 },
+        { x: 32, y: config.mapHeight - 3 },
+      ],
+      tecnoTreeSpawns: [
+        { x: 8, y: config.mapHeight - 7 },
+        { x: 20, y: config.mapHeight - 13 },
+        { x: 27, y: config.mapHeight - 16 },
+        { x: 36, y: config.mapHeight - 21 },
+      ],
+      flowerSpawns: [
+        { x: 5, y: config.mapHeight - 3 },
+        { x: 14, y: config.mapHeight - 3 },
+        { x: 24, y: config.mapHeight - 3 },
+        { x: 34, y: config.mapHeight - 3 },
+      ],
+      entryMessage:
+        config.messages.platformerFloor ||
+        `Этаж ${floorNumber} стал платформером.`,
+    },
+  };
+}
+
 export function createDefaultLevel({ config, enemyTypes, floorNumber = 1 }) {
+  if (floorNumber >= (config.floorCount || 1)) {
+    return createPlatformerFloor(config, floorNumber);
+  }
+
   const tiles = createWallMap(config.mapWidth, config.mapHeight);
   const rooms = [];
   const roomCount = getRandomInt(
